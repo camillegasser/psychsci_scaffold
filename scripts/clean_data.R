@@ -34,7 +34,7 @@ study_rts <- filter(pretrain_study, !is.na(response))$rt
 sd_cutoff <- mean(study_rts) + (3 * sd(study_rts))
 
 # create clean study data file
-pretrain_study_clean <- filter(pretrain_study, !(id %in% pretrain_exclusions))
+pretrain_study_clean <- filter(pretrain_study, !(id %in% pretrain_exclusions), !is.na(response))
 write.csv(pretrain_study_clean, file = here(clean_data_dir, "exp1_pretrain_study_clean.csv"), row.names = F)
 
 # create clean test data file
@@ -107,7 +107,7 @@ recon_exclusions <- unique(recon_exclusions)
 
 # create clean recon file
 recon_clean <- recon_data %>%
-  filter(!(id %in% recon_exclusions), rt >= 100)
+  filter(!(id %in% recon_exclusions), rt >= 100, !is.na(response))
 write.csv(recon_clean, file = here(clean_data_dir, "exp1_recon_clean.csv"), row.names = F)
 
 # SPATIAL MEMORY
@@ -142,6 +142,22 @@ spatial_clean <- spatial_data %>%
   filter(!(id %in% spatial_exclusions), rt >= 100, !is.na(response))
 write.csv(spatial_clean, file = here(clean_data_dir, "exp1_spatial_clean.csv"), row.names = F)
 
+# REMINDER
+# ----------------
+remind_data <- read.csv(here(raw_data_dir, "/exp1_reminder.csv"), stringsAsFactors = F)
+
+# continue excluding participants that were previously excluded (prior to memory test analysis)
+remind_exclusions <- c(enc_exclusions, enc_pred$id[enc_pred$pred_acc < 0.8])
+
+# create clean reminder file (and add repetition info)
+remind_clean <- remind_data %>%
+  filter(!(id %in% remind_exclusions)) %>%
+  group_by(id) %>%
+  mutate(test_rep = rep(c(1,2), each = 6)) %>%
+  ungroup()
+
+write.csv(remind_clean, file = here(clean_data_dir, "exp1_remind_clean.csv"), row.names = F)
+
 ## ==============================
 ## EXPERIMENT 2
 ## ==============================
@@ -168,7 +184,7 @@ study_rts <- filter(pretrain_study, !is.na(response))$rt
 sd_cutoff <- mean(study_rts) + (3 * sd(study_rts))
 
 # create clean study data file
-pretrain_study_clean <- filter(pretrain_study, !(id %in% pretrain_exclusions))
+pretrain_study_clean <- filter(pretrain_study, !(id %in% pretrain_exclusions), !is.na(response))
 write.csv(pretrain_study_clean, file = here(clean_data_dir, "exp2_pretrain_study_clean.csv"), row.names = F)
 
 # create clean test data file
@@ -233,7 +249,7 @@ recon_exclusions <- unique(recon_exclusions)
 
 # create clean recon file
 recon_clean <- recon_data %>%
-  filter(!(id %in% recon_exclusions), rt >= 100)
+  filter(!(id %in% recon_exclusions), rt >= 100, !is.na(response))
 write.csv(recon_clean, file = here(clean_data_dir, "exp2_recon_clean.csv"), row.names = F)
 
 sprintf('%d/80 subjects remaining for reconstruction analyses', length(unique(recon_clean$id)))
@@ -300,7 +316,7 @@ study_rts <- filter(pretrain_study, !is.na(response))$rt
 sd_cutoff <- mean(study_rts) + (3 * sd(study_rts))
 
 # create clean study data file
-pretrain_study_clean <- filter(pretrain_study, !(id %in% pretrain_exclusions))
+pretrain_study_clean <- filter(pretrain_study, !(id %in% pretrain_exclusions), !is.na(response))
 write.csv(pretrain_study_clean, file = here(clean_data_dir, "exp3_pretrain_study_clean.csv"), row.names = F)
 
 # create clean test data file
@@ -373,7 +389,7 @@ recon_exclusions <- unique(recon_exclusions)
 
 # create clean recon file
 recon_clean <- recon_data %>%
-  filter(!(id %in% recon_exclusions), rt >= 100)
+  filter(!(id %in% recon_exclusions), rt >= 100, !is.na(response))
 write.csv(recon_clean, file = here(clean_data_dir, "exp3_recon_clean.csv"), row.names = F)
 
 # ITEM RECOGNITION
@@ -407,3 +423,19 @@ recog_exclusions <- unique(recog_exclusions)
 recog_clean <- recog_data %>%
   filter(!(id %in% recog_exclusions), rt >= 100, !is.na(response))
 write.csv(recog_clean, file = here(clean_data_dir, "exp3_recog_clean.csv"), row.names = F)
+
+# REMINDER
+# ----------------
+remind_data <- read.csv(here(raw_data_dir, "/exp3_reminder.csv"), stringsAsFactors = F)
+
+# continue excluding participants that were previously excluded (prior to memory test analysis)
+remind_exclusions <- c(enc_exclusions, enc_pred$id[enc_pred$pred_acc < 0.8])
+
+# create clean reminder file (and add repetition info)
+remind_clean <- remind_data %>%
+  filter(!(id %in% remind_exclusions)) %>%
+  group_by(id) %>%
+  mutate(test_rep = rep(c(1,2), each = 6)) %>%
+  ungroup()
+
+write.csv(remind_clean, file = here(clean_data_dir, "exp3_remind_clean.csv"), row.names = F)
