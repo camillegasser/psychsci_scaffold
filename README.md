@@ -1,4 +1,3 @@
-# "Cross-modal facilitation of episodic memory by sequential action execution"
-## data, stimuli, & analysis code
+## Cross-modal facilitation of episodic memory by sequential action execution: data, stimuli, & analysis code
 
 Description coming soon.
