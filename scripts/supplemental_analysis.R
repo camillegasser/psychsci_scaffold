@@ -904,3 +904,60 @@ e2_spatial_diff <- e2_spatial %>%
 var.test(e1_spatial_diff$acc_diff, e2_spatial_diff$acc_diff)
 t.test(e1_spatial_diff$acc_diff, e2_spatial_diff$acc_diff, paired = F, var.equal = T)
 effsize::cohen.d(e1_spatial_diff$acc_diff, e2_spatial_diff$acc_diff, paired = F)
+
+# ----------------
+# FINAL RECON TEST
+# ----------------
+# analyses not detailed in manuscript
+
+final_recon <- read.csv(paste0(raw_data_dir, "/exp2_final_recon.csv"), stringsAsFactors = F)
+
+# get participants included in main experiment 2 recon analyses to remove exclusions
+exp2_recon <- read.csv(paste0(data_dir, "/exp2_recon_clean.csv"), stringsAsFactors = F)
+final_recon <- final_recon %>%
+  filter(id %in% unique(exp2_recon$id),
+         rt >= 100, !is.na(response))
+
+# exclude those who got below-chance accuracy on this final test too
+final_recon_binom <- final_recon %>%
+  group_by(id) %>%
+  summarise(n_correct = sum(accuracy == 1, na.rm = T),
+            n_total = sum(!is.na(response)))
+final_recon_binom[, c("binom_stat", "binom_pval")] <- NA
+
+for (sub in final_recon_binom$id) {
+  bt <- binom.test(filter(final_recon_binom, id == sub)$n_correct,
+                   filter(final_recon_binom, id == sub)$n_total,
+                   p = 1/6, alternative = 'g')
+  final_recon_binom$binom_stat[final_recon_binom$id == sub] <- bt$statistic
+  final_recon_binom$binom_pval[final_recon_binom$id == sub] <- bt$p.value
+}
+final_recon <- filter(final_recon, !(id %in% final_recon_binom$id[final_recon_binom$binom_pval > 0.05]))
+
+# order memory by condition
+final_recon_acc <- final_recon %>%
+  group_by(id, condition) %>%
+  summarise(mean_acc = mean(accuracy)) %>%
+  ungroup()
+final_recon_acc_group <- final_recon_acc %>%
+  group_by(condition) %>%
+  summarise(group_mean_acc = mean(mean_acc)) %>%
+  ungroup()
+final_recon_acc_group$group_sem_acc <- summarySEwithin(data = final_recon_acc, measurevar = "mean_acc",
+                                                 withinvars = "condition", idvar = "id")$se
+
+# plot
+ggplot(final_recon_acc, aes(x = condition, y = mean_acc, fill = condition)) +
+  geom_bar(data = final_recon_acc_group, aes(x = condition, y = group_mean_acc),
+           stat = 'identity', width = 0.8) +
+  geom_dotplot(binaxis = 'y', stackdir = 'center', dotsize = 1.5, color = 'white') +
+  geom_errorbar(data = final_recon_acc_group, width = 0.1,
+                aes(x = condition, y = group_mean_acc,
+                    ymin = group_mean_acc - group_sem_acc, ymax = group_mean_acc + group_sem_acc)) +
+  geom_hline(yintercept = 1/6, color = 'grey20', linetype = 'dashed') +
+  scale_fill_manual(values = cond_cols) +
+  labs(x = 'condition', y = 'ordinal accuracy (final test)') +
+  theme(text= element_text(size = 15))
+
+t.test(mean_acc ~ condition, data = final_recon_acc, paired = T)
+effsize::cohen.d(mean_acc ~ condition | Subject(id), data = final_recon_acc, paired = T)
