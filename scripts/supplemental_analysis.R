@@ -3,6 +3,7 @@ rm(list = ls())
 setwd("/Volumes/GoogleDrive/My Drive/grad-school/premo/manuscript/psychsci_submission/psychsci_scaffold")
 
 # setup
+library(Rmisc)
 library(tidyverse)
 library(ggbeeswarm)
 library(effsize)
@@ -49,7 +50,7 @@ pretrain_study_rt_group <- pretrain_study_rt %>%
   ungroup()
 pretrain_study_rt_group$group_sem_rt <- summarySEwithin(data = pretrain_study, measurevar = "rt",
                                                         withinvars = c("condition", "seq_pos"),
-                                                                       idvar = "id")$se
+                                                        idvar = "id")$se
 
 # plot
 ggplot(pretrain_study_rt_group, aes(x = seq_pos, y = group_mean_rt, color = condition)) +
@@ -603,7 +604,8 @@ spatial_acc <- spatial %>%
   as.data.frame()
 
 # run anova + post-hoc ttests
-av <- anova_test(data = spatial_acc, dv = mean_acc, wid = id, within = spatial_correct, effect.size = 'pes')
+av <- anova_test(data = spatial_acc, dv = mean_acc, wid = id,
+                 within = spatial_correct, effect.size = 'pes')
 av_tab <- get_anova_table(av)
 av_tab
 
@@ -652,7 +654,8 @@ spatial_acc <- spatial %>%
   as.data.frame()
 
 # run anova + post-hoc ttests
-av <- anova_test(data = spatial_acc, dv = mean_acc, wid = id, within = spatial_correct, effect.size = 'pes')
+av <- anova_test(data = spatial_acc, dv = mean_acc, wid = id,
+                 within = spatial_correct, effect.size = 'pes')
 av_tab <- get_anova_table(av)
 av_tab
 
@@ -744,8 +747,10 @@ ggsave(paste0(plot_dir, "/supp_exp3_recogAcc_conf.pdf"), width = 5.5, height = 3
 # some subs excluded bc they don't have enough trials in each condition/conf bin
 usable_subs <- recog_acc %>% group_by(id) %>% summarise(count = length(id))
 usable_subs <- usable_subs$id[usable_subs$count == max(usable_subs$count)]
-t.test(dprime ~ condition, paired = T, data = subset(recog_acc, id %in% usable_subs & confidence == "high"))
-t.test(dprime ~ condition, paired = T, data = subset(recog_acc, id %in% usable_subs & confidence == "low"))
+t.test(dprime ~ condition, paired = T,
+       data = subset(recog_acc, id %in% usable_subs & confidence == "high"))
+t.test(dprime ~ condition, paired = T,
+       data = subset(recog_acc, id %in% usable_subs & confidence == "low"))
 
 # ----------------
 # ITEM RECOGNITION BY SEQUENCE POSITION
@@ -944,7 +949,7 @@ final_recon_acc_group <- final_recon_acc %>%
   summarise(group_mean_acc = mean(mean_acc)) %>%
   ungroup()
 final_recon_acc_group$group_sem_acc <- summarySEwithin(data = final_recon_acc, measurevar = "mean_acc",
-                                                 withinvars = "condition", idvar = "id")$se
+                                                       withinvars = "condition", idvar = "id")$se
 
 # plot
 ggplot(final_recon_acc, aes(x = condition, y = mean_acc, fill = condition)) +
@@ -961,3 +966,55 @@ ggplot(final_recon_acc, aes(x = condition, y = mean_acc, fill = condition)) +
 
 t.test(mean_acc ~ condition, data = final_recon_acc, paired = T)
 effsize::cohen.d(mean_acc ~ condition | Subject(id), data = final_recon_acc, paired = T)
+
+# order memory by event
+final_recon_event <- final_recon %>%
+  group_by(id, list, event) %>%
+  summarise(n_correct = sum(accuracy), condition = get_mode(condition)) %>%
+  group_by(id, condition) %>%
+  summarise(prop_6 = sum(n_correct == 6) / length(n_correct),
+            prop_5 = sum(n_correct == 5) / length(n_correct),
+            prop_4 = sum(n_correct == 4) / length(n_correct),
+            prop_3 = sum(n_correct == 3) / length(n_correct),
+            prop_2 = sum(n_correct == 2) / length(n_correct),
+            prop_1 = sum(n_correct == 1) / length(n_correct),
+            prop_0 = sum(n_correct == 0) / length(n_correct)) %>%
+  pivot_longer(cols = starts_with('prop_'), names_to = 'num_correct', values_to = 'proportion') %>%
+  mutate(num_correct = as.numeric(gsub('prop_', '', num_correct)),
+         condition = as.factor(condition)) %>%
+  ungroup()
+final_recon_event_group <- final_recon_event %>%
+  group_by(condition, num_correct) %>%
+  summarise(group_mean_prop = mean(proportion)) %>%
+  ungroup()
+final_recon_event_group$group_sem_prop <- summarySEwithin(data = final_recon_event,
+                                                          measurevar = "proportion",
+                                                          withinvars = c("condition", "num_correct"),
+                                                          idvar = "id")$se
+
+# stats
+ttest_multiple_fdr(final_recon_event, equation = "proportion ~ condition", grouping = "num_correct")
+
+# order memory by condition and seq pos
+final_recon_acc <- final_recon %>%
+  group_by(id, condition, seq_pos) %>%
+  summarise(mean_acc = mean(accuracy)) %>%
+  ungroup()
+final_recon_acc_group <- final_recon_acc %>%
+  group_by(condition, seq_pos) %>%
+  summarise(group_mean_acc = mean(mean_acc)) %>%
+  ungroup()
+final_recon_acc_group$group_sem_acc <- summarySEwithin(data = final_recon_acc, measurevar = "mean_acc",
+                                                       withinvars = c("condition", "seq_pos"),
+                                                       idvar = "id")$se
+# stats - ttest
+ttest_multiple_fdr(final_recon_acc, equation = "mean_acc ~ condition", grouping = "seq_pos")
+
+# stats - logistic regression model
+final_recon_model_data <- mutate(final_recon,
+                                 condition_e = ifelse(condition == 'pred', 0.5, -0.5), # effect coded
+                                 seq_pos_z = scale(seq_pos, center = T, scale = F)) # center pos = 0
+final_recon_model <- glmer(accuracy ~ condition_e * seq_pos_z + (condition_e + seq_pos_z || id),
+                           data = final_recon_model_data, family = 'binomial')
+summary(final_recon_model)
+confint(final_recon_model) # takes awhile to run
