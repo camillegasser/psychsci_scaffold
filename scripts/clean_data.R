@@ -1,5 +1,6 @@
-
 rm(list = ls())
+
+setwd("/Volumes/GoogleDrive/My Drive/grad-school/scaffold_behav/manuscript/psychsci_submission/psychsci_scaffold")
 
 # script setup
 library(tidyverse)

@@ -1,6 +1,6 @@
 rm(list = ls())
 
-setwd("/Volumes/GoogleDrive/My Drive/grad-school/premo/manuscript/psychsci_submission/psychsci_scaffold")
+setwd("/Volumes/GoogleDrive/My Drive/grad-school/scaffold_behav/manuscript/psychsci_submission/psychsci_scaffold")
 
 # setup
 library(Rmisc)
