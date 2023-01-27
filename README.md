@@ -1,3 +1,3 @@
-## Cross-modal facilitation of episodic memory by sequential action execution: data, stimuli, & analysis code
+## Cross-modal facilitation of episodic memory by sequential action execution (Gasser & Davachi, 2023)
 
-Description coming soon.
+see OSF page for more information: https://osf.io/xgwzf/
